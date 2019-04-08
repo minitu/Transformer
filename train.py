@@ -57,15 +57,18 @@ def train_model(model, opt):
               print("   %dm: epoch %d [%s%s]  %d%%  loss = %.3f" %\
               ((time.time() - start)//60, epoch + 1, "".join('#'*(p//5)), "".join(' '*(20-(p//5))), p, avg_loss))
            total_loss = 0
+      '''
 
       if opt.checkpoint > 0 and ((time.time()-cptime)//60) // opt.checkpoint >= 1:
           torch.save(model.state_dict(), 'weights/model_weights')
           cptime = time.time()
-      '''
 
       batch_time = time.time() - batch_start_time
+      batch_time_sum += batch_time
       processed_batches += 1
-      print("Batch {}/{}, time: {}, loss: {}".format(i, opt.train_len, batch_time, total_loss / processed_batches))
+      if (i % opt.printevery == 0) and i != 0:
+        print("Batch {}/{}, average time: {:.6f}, loss: {:.6f}".format(i, opt.train_len, batch_time_sum / opt.printevery, total_loss / processed_batches))
+        batch_time_sum = 0
 
     print("%dm: epoch %d [%s%s]  %d%%  loss = %.3f\nepoch %d complete, loss = %.03f" %\
     ((time.time() - start)//60, epoch + 1, "".join('#'*(100//5)), "".join(' '*(20-(100//5))), 100, avg_loss, epoch + 1, avg_loss))

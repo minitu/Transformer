@@ -1,7 +1,6 @@
 import pandas as pd
 import torch
 import torchtext
-from torchtext import data
 from Tokenize import tokenize
 from Batch import MyIterator, batch_size_fn
 import os
@@ -34,8 +33,8 @@ def create_fields(opt):
   t_src = tokenize(opt.src_lang)
   t_trg = tokenize(opt.trg_lang)
 
-  TRG = data.Field(lower=True, tokenize=t_trg.tokenizer, init_token='<sos>', eos_token='<eos>')
-  SRC = data.Field(lower=True, tokenize=t_src.tokenizer)
+  TRG = torchtext.data.Field(lower=True, tokenize=t_trg.tokenizer, init_token='<sos>', eos_token='<eos>')
+  SRC = torchtext.data.Field(lower=True, tokenize=t_src.tokenizer)
 
   if opt.load_weights is not None:
     try:
@@ -60,22 +59,23 @@ def create_dataset(opt, SRC, TRG):
   df.to_csv("translate_transformer_temp.csv", index=False)
 
   data_fields = [('src', SRC), ('trg', TRG)]
-  train = data.TabularDataset('./translate_transformer_temp.csv', format='csv', fields=data_fields)
+  train_dataset = torchtext.data.TabularDataset('./translate_transformer_temp.csv', format='csv', fields=data_fields)
+  print("len(train_dataset): ", len(train_dataset))
 
   if opt.device == 0:
     train_device = torch.device('cuda:0')
   else:
     train_device = torch.device('cpu')
 
-  train_iter = MyIterator(train, batch_size=opt.batchsize, device=train_device,
+  train_iter = MyIterator(train_dataset, batch_size=opt.batchsize, device=train_device,
       repeat=False, sort_key=lambda x: (len(x.src), len(x.trg)),
       batch_size_fn=batch_size_fn, train=True, shuffle=True)
 
   os.remove('translate_transformer_temp.csv')
 
   if opt.load_weights is None:
-    SRC.build_vocab(train)
-    TRG.build_vocab(train)
+    SRC.build_vocab(train_dataset)
+    TRG.build_vocab(train_dataset)
     if opt.checkpoint > 0:
       try:
         os.mkdir("weights")
